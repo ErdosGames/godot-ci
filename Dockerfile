@@ -17,53 +17,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     osslsigncode \
     && rm -rf /var/lib/apt/lists/*
 
-ARG GODOT_VERSION="4.2.1"
-ARG RELEASE_NAME="stable"
-ARG SUBDIR=""
-ARG GODOT_TEST_ARGS=""
-ARG GODOT_PLATFORM="linux.x86_64"
-
-RUN wget https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}${SUBDIR}/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_${GODOT_PLATFORM}.zip \
-    && wget https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}${SUBDIR}/Godot_v${GODOT_VERSION}-${RELEASE_NAME}_export_templates.tpz \
+RUN wget https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip \
+    && wget https://github.com/GodotSteam/GodotSteam/releases/download/v4.10/win64-g43-s160-gs410.zip \
     && mkdir ~/.cache \
     && mkdir -p ~/.config/godot \
-    && mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.${RELEASE_NAME} \
-    && unzip Godot_v${GODOT_VERSION}-${RELEASE_NAME}_${GODOT_PLATFORM}.zip \
-    && mv Godot_v${GODOT_VERSION}-${RELEASE_NAME}_${GODOT_PLATFORM} /usr/local/bin/godot \
-    && unzip Godot_v${GODOT_VERSION}-${RELEASE_NAME}_export_templates.tpz \
-    && mv templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.${RELEASE_NAME} \
-    && rm -f Godot_v${GODOT_VERSION}-${RELEASE_NAME}_export_templates.tpz Godot_v${GODOT_VERSION}-${RELEASE_NAME}_${GODOT_PLATFORM}.zip
+    && mkdir -p ~/.local/share/godot/export_templates \
+    && unzip Godot_v4.3-stable_linux.x86_64.zip \
+    && mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot \
+    && unzip win64-g43-s160-gs410.zip \
+    && mv godotsteam.43.template.windows.64.exe ~/.local/share/godot/export_templates \
+    && mv steam_api64.dll ~/.local/share/godot/export_templates \
+    && rm -f win64-g43-s160-gs410.zip Godot_v4.3-stable_linux.x86_64.zip
 
 ADD getbutler.sh /opt/butler/getbutler.sh
 RUN bash /opt/butler/getbutler.sh
 RUN /opt/butler/bin/butler -V
 
 ENV PATH="/opt/butler/bin:${PATH}"
-
-# Download and setup android-sdk
-ENV ANDROID_HOME="/usr/lib/android-sdk"
-RUN wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip \
-    && unzip commandlinetools-linux-*_latest.zip -d cmdline-tools \
-    && mv cmdline-tools $ANDROID_HOME/ \
-    && rm -f commandlinetools-linux-*_latest.zip
-
-ENV PATH="${ANDROID_HOME}/cmdline-tools/cmdline-tools/bin:${PATH}"
-
-RUN yes | sdkmanager --licenses \
-    && sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33" "cmdline-tools;latest" "cmake;3.22.1" "ndk;25.2.9519653"
-
-# Adding android keystore and settings
-RUN keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 \
-    && mv debug.keystore /root/debug.keystore
-
-RUN godot -v -e --quit --headless ${GODOT_TEST_ARGS}
-RUN echo 'export/android/android_sdk_path = "/usr/lib/android-sdk"' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/debug_keystore = "/root/debug.keystore"' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/debug_keystore_user = "androiddebugkey"' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/debug_keystore_pass = "android"' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/force_system_user = false' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/timestamping_authority_url = ""' >> ~/.config/godot/editor_settings-4.tres
-RUN echo 'export/android/shutdown_adb_on_exit = true' >> ~/.config/godot/editor_settings-4.tres
 
 RUN wget https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe -O /opt/rcedit.exe
 RUN echo 'export/windows/rcedit = "/opt/rcedit.exe"' >> ~/.config/godot/editor_settings-4.tres
